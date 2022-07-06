@@ -1,0 +1,4 @@
+[submodule "simulation-tools"]
+	path = simulation-tools
+	url = https://github.com/simcesplatform/simulation-tools.git
+	branch = master

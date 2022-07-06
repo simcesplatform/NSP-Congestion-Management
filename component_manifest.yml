@@ -1,0 +1,25 @@
+# The component manifest file for the NIS component
+
+Name: NetworkStatePredictor
+Type: platform
+Description: "Network state predictor (NSP) component for the SimCES Platform"
+DockerImage: ghcr.io/mehdiattar-lab/
+Attributes:
+    ApparentPowerBase:
+        Environment: APPARENT_POWER_BASE
+        Optional: true
+    PowerFlowPercision:
+        Environment: POWER_FLOW_PERCISION
+        Optional: true
+    VoltageForecast:
+        Environment: VOLTAGE_FORECAST_TOPIC
+        Optional: true
+    CurrentForecast:
+        Environment: CURRENT_FORECAST_TOPIC
+        Optional: true
+    RootBus:
+        Environment: ROOT_BUS_VOLTAGE
+        Optional: true
+    ForecastHorizon:
+        Environment: FORECAST_HORIZON
+        Optional: true
