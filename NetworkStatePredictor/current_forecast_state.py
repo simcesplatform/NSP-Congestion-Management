@@ -126,7 +126,7 @@ class ForecastStateMessageCurrent(AbstractResultMessage):
         if self._check_phase(phase):
             self.__phase=phase
         else:
-            raise MessageValueError("Invalid value, {}, for attribute: bus_voltage_base".format(phase)))
+            raise MessageValueError("Invalid value, {}, for attribute: bus_voltage_base".format(phase))
 
     @classmethod
     def _check_phase(cls, phase: List[int]) -> bool:

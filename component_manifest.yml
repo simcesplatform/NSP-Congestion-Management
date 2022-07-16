@@ -5,17 +5,11 @@ Type: platform
 Description: "Network state predictor (NSP) component for the SimCES Platform"
 DockerImage: ghcr.io/mehdiattar-lab/
 Attributes:
-    ApparentPowerBase:
-        Environment: APPARENT_POWER_BASE
-        Optional: true
     PowerFlowPercision:
         Environment: POWER_FLOW_PERCISION
         Optional: true
-    VoltageForecast:
-        Environment: VOLTAGE_FORECAST_TOPIC
-        Optional: true
-    CurrentForecast:
-        Environment: CURRENT_FORECAST_TOPIC
+    ApparentPowerBase:
+        Environment: APPARENT_POWER_BASE
         Optional: true
     RootBus:
         Environment: ROOT_BUS_VOLTAGE
@@ -23,3 +17,12 @@ Attributes:
     ForecastHorizon:
         Environment: FORECAST_HORIZON
         Optional: true
+    Resources:
+        Environment: NUM_OF_RESOURCES
+        Optional: false
+    ResourceCategories:
+        Environment: RESOURCE_CATEGORIES
+        Optional: false
+    Grid:
+        Environment: GRID_ID
+        Optional: false
