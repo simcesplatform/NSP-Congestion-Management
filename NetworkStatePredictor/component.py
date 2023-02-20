@@ -201,7 +201,7 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
 
                 self._per_unit["voltage_base"] = self._nis_bus_data.bus_voltage_base.values
                 self._per_unit["s_base"] = [self._apparent_power_base for i in range(self._num_buses)]
-                self._per_unit["i_base"] = abs(self._per_unit["s_base"]/(numpy.array(self._per_unit["voltage_base"]))*cmath.sqrt(3)) # since we have line to line voltages sqrt(3) is needed
+                self._per_unit["i_base"] = numpy.divide(abs(self._per_unit["s_base"],(numpy.array(self._per_unit["voltage_base"]))*cmath.sqrt(3))) # since we have line to line voltages sqrt(3) is needed
                 self._per_unit["z_base"] = [i / j for i, j in zip(self._per_unit["voltage_base"],self._per_unit["i_base"])]
 
                 LOGGER.info("self._per_unit[voltage_base] is {}".format(self._per_unit["voltage_base"]))
