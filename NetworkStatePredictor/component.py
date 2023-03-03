@@ -255,10 +255,10 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
                         c1=[to_bus,bus_name]
                         for k in range(self._num_branches):
                             if c==list(merged_list[k]) or c1==list(merged_list[k]):
-                                self._bus["admittance_node_1"][bus] = self._nis_component_data.shunt_admittance[k]/2 + self._bus["admittance_node_1"][bus]
-                                self._bus["admittance_node_2"][bus] = self._nis_component_data.shunt_admittance[k]/2 + self._bus["admittance_node_1"][bus]
-                                self._bus["admittance_node_3"][bus] = self._nis_component_data.shunt_admittance[k]/2 + self._bus["admittance_node_1"][bus]
-                                self._bus["admittance_node_neutral"][bus] = self._nis_component_data.shunt_admittance[k]/2 + self._bus["admittance_node_1"][bus]
+                                self._bus["admittance_node_1"][bus] = self._nis_component_data.shunt_admittance.values[k]/2 + self._bus["admittance_node_1"][bus]
+                                self._bus["admittance_node_2"][bus] = self._nis_component_data.shunt_admittance.values[k]/2 + self._bus["admittance_node_1"][bus]
+                                self._bus["admittance_node_3"][bus] = self._nis_component_data.shunt_admittance.values[k]/2 + self._bus["admittance_node_1"][bus]
+                                self._bus["admittance_node_neutral"][bus] = self._nis_component_data.shunt_admittance.values[k]/2 + self._bus["admittance_node_1"][bus]
 
                 LOGGER.info("17")
                 # preparing voltage and current forecast messages templates
@@ -301,22 +301,9 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
             self._branch["current_phase_neutral"] = [0 for i in range(self._num_branches)]
             self._branch["delta_v_phase_neutral"] = [0 for i in range(self._num_branches)]
 
-            # setting up node dictionary for all three nodes
-            LOGGER.info("18")
-
-            for node in range (3):
-                self._bus[power_node[node]] = [0 for i in range(self._num_buses)]
-
-            for node in range (4):
-                self._bus[voltage_old_node[node]] = [1 for i in range(self._num_buses)]
-                self._bus[voltage_old_node[node]][self._root_bus_index] = self._root_bus_voltage # fixing the root bus voltage
-                self._bus[voltage_new_node[node]] = [0 for i in range(self._num_buses)]
-                self._bus[voltage_new_node[node]][self._root_bus_index] = self._root_bus_voltage # fixing the root bus voltage
-                self._bus[current_node[node]] = [0 for i in range(self._num_buses)]
-
             # Duplicaiton of the template of voltage and current forecasts, ready to be filled when power flow is done
 
-            LOGGER.info("19")
+            LOGGER.info("18")
 
             for duplication in range (self._num_buses):
                 for nodes_num in range(3):  # Each bus has three nodes
@@ -324,42 +311,36 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
             for duplication in range (self._num_branches):
                 for phases_num in range (3): # each branch has three phases
                     self._current_forecast.append(self._current_forecast_template)
+
+            # setting up node dictionary for all three nodes
+            LOGGER.info("19")
+
+            for node in range (3):
+                self._bus[power_node[node]] = [0 for i in range(self._num_buses)]
+            for node in range (4):
+                self._bus[voltage_old_node[node]]=[0 for i in range(self._num_buses)]
+
+            for bus in range (self._num_buses):
+                LOGGER.info("voltage old node 1 is {}".format(self._bus["voltage_old_node_1"]))
+                LOGGER.info("voltage old node 1 is {}".format(self._bus["voltage_old_node_1"][bus])) 
+                self._bus["voltage_old_node_1"][bus] = self._root_bus_voltage
+                self._bus["voltage_old_node_2"][bus] = cmath.rect(self._root_bus_voltage,4*math.pi/3)
+                self._bus["voltage_old_node_3"][bus] = cmath.rect(self._root_bus_voltage,2*math.pi/3)
+                self._bus["voltage_old_node_neutral"][bus] = 0
+            
+            for node in range(4):
+                self._bus[current_node[node]] = [0 for i in range(self._num_buses)]
             
             # calculate backward-forward sweep powerflow for each timestep of the forecast horizon based on https://ieeexplore.ieee.org/abstract/document/1245548
             LOGGER.info("20")
 
             for horizon in range (self._forecast_horizon): 
-                power_flow_error_node=[0 for i in range(self._num_buses)]
-                LOGGER.info("voltage_old_node_1 is {}".format(self._bus["voltage_old_node_1"]))
-                for w in range (self._num_buses): # calculate the error only for node 1
-                    power_flow_error_node[w]=abs(self._bus["voltage_old_node_1"][w]-self._bus["voltage_new_node_1"][w])
-                LOGGER.info("Power flow error is {}".format(power_flow_error_node))
 
-                LOGGER.info("21")
-
-                for bus in range (self._num_buses):  # set the voltage new as 1 for all buses and nodes except the neutral node
-                    self._bus["voltage_new_node_1"][bus] = self._root_bus_voltage
-                for bus in range (self._num_buses):  # set the voltage new as 1 for all buses and nodes except the neutral node
-                    self._bus["voltage_new_node_2"][bus] = cmath.rect(self._root_bus_voltage,4*math.pi/3)
-                for bus in range (self._num_buses):  # set the voltage new as 1 for all buses and nodes except the neutral node
-                    self._bus["voltage_new_node_3"][bus] = cmath.rect(self._root_bus_voltage,2*math.pi/3)
-
-                self._bus[voltage_new_node[3]] = [0 for i in range(self._num_buses)]
-
-                LOGGER.info("Voltage new bus at node 2 is {}".format(self._bus["voltage_new_node_2"]))
-
-                #    self._bus[voltage_new_node[s]][self._root_bus_index] = self._root_bus_voltage # fixing the root bus voltage
+                power_flow_error_node=10 # 10 is a value that is way larger than the aaceptable limit to make sure that the first iteration will begin
                 LOGGER.info("22")
 
-                while max(power_flow_error_node) > self._power_flow_percision: # stop power flow when enough accuracy of voltages reached
-                    for p in range (4): # clear values for a fresh start
-                        self._bus[voltage_old_node[p]]=self._bus[voltage_new_node[p]]
-                        self._bus[voltage_new_node[p]]=[0 for i in range(self._num_buses)]
-                        self._bus[voltage_new_node[p]][self._root_bus_index] = self._root_bus_voltage
-                        self._branch[current_phase[p]] = [0 for i in range(self._num_branches)]
-                        self._branch[delta_v_phase[p]] = [0 for i in range(self._num_branches)]
-                        self._bus[current_node[p]] = [0 for i in range(self._num_buses)]
-                    
+                while power_flow_error_node > self._power_flow_percision: # stop power flow when enough accuracy of voltages reached
+
                     for p in range (3):    
                         self._bus[power_node[p]]=[0 for i in range(self._num_buses)]
 
@@ -417,11 +398,15 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
 
                     LOGGER.info("24")
                     for bus in range (self._num_buses): 
-                        LOGGER.info("I is {}".format(bus))
+                        LOGGER.info("bus is {}".format(bus))
                         for node in range (0,3):   # for each phase
-                            LOGGER.info("F is {}".format(node))
-                            self._bus[current_node[node]][bus] = [i / j for i, j in zip(self._bus[power_node[node]][bus],(self._bus[voltage_old_node[node]][bus]-self._bus["voltage_old_node_neutral"][bus]))]
+                            LOGGER.info("node is {}".format(node))
+                            LOGGER.info("voltage old is {}".format(self._bus[voltage_old_node[node]][bus]))
+                            LOGGER.info("voltage at neutral point is {}".format(self._bus["voltage_old_node_neutral"][bus]))
+                            voltage_difference = self._bus[voltage_old_node[node]][bus] - self._bus["voltage_old_node_neutral"][bus]
+                            self._bus[current_node[node]][bus] = self._bus[power_node[node]][bus]/voltage_difference
                             LOGGER.info("current is {}".format(self._bus[current_node[node]][bus]))
+                            LOGGER.info("voltage difference is {}".format(voltage_difference))
                         self._bus["current_node_neutral"][bus]=-(self._bus["current_node_1"][bus]+self._bus["current_node_2"][bus]+self._bus["current_node_3"][bus])
 
                     for bus in range(self._num_buses):
@@ -500,6 +485,15 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
                             zero_avail = self._bus[voltage_new_node[ii]].count(0)
                     for w in range (self._num_buses): # calculate the error only for node 1
                         power_flow_error_node[w] = abs(self._bus["voltage_old_node_1"][w]-self._bus["voltage_new_node_1"][w])
+                        power_flow_error_node=max(power_flow_error_node[w])
+                    for p in range (4): # clear values for a fresh start
+                        self._bus[voltage_old_node[p]]=self._bus[voltage_new_node[p]]
+                        self._bus[voltage_new_node[p]]=[0 for i in range(self._num_buses)]
+                        self._bus[current_node[p]] = [0 for i in range(self._num_buses)]
+                    #    self._bus[voltage_new_node[p]][self._root_bus_index] = self._root_bus_voltage
+                        self._branch[current_phase[p]] = [0 for i in range(self._num_branches)]
+                        self._branch[delta_v_phase[p]] = [0 for i in range(self._num_branches)]
+
                 else:
                     
                     LOGGER.info("27")
