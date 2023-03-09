@@ -312,14 +312,13 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
                 for phases_num in range (3): # each branch has three phases
                     self._current_forecast.append(self._current_forecast_template)
 
-            # setting up node dictionary for all three nodes
+            # setting up node dictionary for all four nodes
             LOGGER.info("19")
 
             for node in range (3):
                 self._bus[power_node[node]] = [0 for i in range(self._num_buses)]
             for node in range (4):
                 self._bus[voltage_old_node[node]]=[0 for i in range(self._num_buses)]
-
             for bus in range (self._num_buses):
                 LOGGER.info("voltage old node 1 is {}".format(self._bus["voltage_old_node_1"]))
                 LOGGER.info("voltage old node 1 is {}".format(self._bus["voltage_old_node_1"][bus])) 
@@ -327,9 +326,13 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
                 self._bus["voltage_old_node_2"][bus] = cmath.rect(self._root_bus_voltage,4*math.pi/3)
                 self._bus["voltage_old_node_3"][bus] = cmath.rect(self._root_bus_voltage,2*math.pi/3)
                 self._bus["voltage_old_node_neutral"][bus] = 0
-            
             for node in range(4):
                 self._bus[current_node[node]] = [0 for i in range(self._num_buses)]
+                self._bus[voltage_new_node[node]] = [0 for i in range(self._num_buses)]
+                self._bus[current_node[node]] = [0 for i in range(self._num_buses)]
+                self._bus[voltage_new_node[node]][self._root_bus_index] = self._root_bus_voltage
+                self._branch[current_phase[node]] = [0 for i in range(self._num_branches)]
+                self._branch[delta_v_phase[node]] = [0 for i in range(self._num_branches)]
             
             # calculate backward-forward sweep powerflow for each timestep of the forecast horizon based on https://ieeexplore.ieee.org/abstract/document/1245548
             LOGGER.info("20")
@@ -409,7 +412,7 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
                             LOGGER.info("voltage difference is {}".format(voltage_difference))
                         self._bus["current_node_neutral"][bus]=-(self._bus["current_node_1"][bus]+self._bus["current_node_2"][bus]+self._bus["current_node_3"][bus])
 
-                    for bus in range(self._num_buses):
+                    for bus in range(self._num_buses): # taking into account line admittances
                         for node in range (0,4):
                             self._bus[current_node[node]][bus] = self._bus[current_node[node]][bus]-(self._bus[admittance_node[node]][bus]*self._bus[voltage_old_node[node]][bus])
 
@@ -438,51 +441,78 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
                                 except BaseException as err:
                                     LOGGER.info(f"Unexpected {err=}, {type(err)=}")
                                 if len(buses_list.intersection(shortest_path)) == 2: # current passes through the branch
-                                    for phases in range (0,3):
+                                    LOGGER.info("The nodal current passes through the branch")
+                                    for phases in range (0,4):
                                         self._branch[current_phase[phases]][i] = self._bus[current_node[phases]][j] + self._branch[current_phase[phases]][i]
+                                        LOGGER.info("the branch current is {}".format(self._branch[current_phase[phases]][i]))
                     
+                    LOGGER.info("25.2")
+                    LOGGER.info("the branch current at phase 1 is {}".format(self._branch[current_phase[0]]))
+                    LOGGER.info("the branch current at phase 2 is {}".format(self._branch[current_phase[1]]))
+                    LOGGER.info("the branch current at phase 3 is {}".format(self._branch[current_phase[2]]))
+                    LOGGER.info("the branch current at phase neutral is {}".format(self._branch[current_phase[3]]))
+
                     # calculating the voltage drop over each branch
                     LOGGER.info("26")
                     for row in range (self._num_branches): 
-                        for kk in range (0,3):
+                        for kk in range (0,4):
                             self._branch[delta_v_phase[kk]][row] = self._branch[current_phase[kk]][row] * self._branch["impedance"][row]
 
-                    voltage_node_1 = []
-                    voltage_node_2 = []
-                    voltage_node_3 = []
-                    voltage_node_1.append(self._bus["voltage_new_node_1"])
-                    voltage_node_2.append(self._bus["voltage_new_node_2"])
-                    voltage_node_3.append(self._bus["voltage_new_node_2"])
-                    zero_avail_node_1 = voltage_node_1.count(0)
-                    zero_avail_node_2 = voltage_node_2.count(0)
-                    zero_avail_node_3 = voltage_node_3.count(0)
-                    zero_availibility = [zero_avail_node_1,zero_avail_node_2,zero_avail_node_3]
+                    #voltage_node_1 = []
+                    #voltage_node_2 = []
+                    #voltage_node_3 = []
+                    #voltage_node_1.append(self._bus["voltage_new_node_1"])
+                    #voltage_node_2.append(self._bus["voltage_new_node_2"])
+                    #voltage_node_3.append(self._bus["voltage_new_node_3"])
+                    #zero_avail_node_1 = voltage_node_1.count(0)
+                    #zero_avail_node_2 = voltage_node_2.count(0)
+                    #zero_avail_node_3 = voltage_node_3.count(0)
+                    #zero_avail_node_3 = voltage_node_3.count(0)
+                    zero_avail = {}
+                    zero_avail = self._bus["voltage_new_node_1"] + self._bus["voltage_new_node_2"] + self._bus["voltage_new_node_3"]  
+                    zero_avail_num = zero_avail.count(0)
+                    LOGGER.info("the number of 0 voltages are {}".format(zero_avail_num))
                     
                     # calculating the new voltages
                     LOGGER.info("27")
-                    for ii in range (0,3):
-                        zero_avail = zero_availibility[ii]
-                        while zero_avail != 0: 
-                            for node in range (self._num_buses):
 
-                                if self._bus[voltage_new_node[ii]][node] == 0:
-                                    bus_name = self._nis_bus_data.bus_name[node]
-                                    self._tree_creator(bus_name,1) # It finds the neighbouring buses
-                                    num_nearby_buses = len(self._nearby_buses)
-                                    if num_nearby_buses > 0:
-                                        for a in range (num_nearby_buses):
-                                            if self._bus[voltage_new_node[ii]][self._nearby_buses[a]] > 0:
-                                                from_bus = self._nearby_buses[a]
-                                                to_bus = bus_name
+                    while zero_avail_num != 0:
+                        for bus in range (self._num_buses):
+                            for node in range (0,4):
+                                LOGGER.info("the node is {}".format(node))
+                                if self._bus[voltage_new_node[node]][bus] == 0:
+                                    bus_name = self._nis_bus_data.bus_name[bus]
+                                    LOGGER.info("the bus name is {}".format(bus_name))
+                                    nearby_buses=self._graph[bus_name]
+                                    LOGGER.info("the nearby buses are {}".format(nearby_buses))
+                                    #self._tree_creator(bus_name,1) # It finds the neighbouring buses
+                                    #num_nearby_buses = len(self._nearby_buses)
+                                    length = len(nearby_buses)
+                                    if length > 0:
+                                        for a in range (length):
+                                            index = self._nis_bus_data.bus_name.index(nearby_buses[a])
+                                            if self._bus[voltage_new_node[node]][index] > 0:
+                                                to_bus = nearby_buses[a]
+                                                from_bus = bus_name
                                                 branch = [from_bus,to_bus]
                                                 branch1 = [to_bus,from_bus]
+                                                shortest_path1 = self._shortest_path(self._root_bus_name,from_bus)
+                                                shortest_path2 = self._shortest_path(self._root_bus_name,to_bus)
                                                 for b in range (self._num_branches):
-                                                    if self._graph[b] == branch or self._graph[b] == branch1:
+                                                    aa = [self._nis_component_data.sending_end_bus[b],self._nis_component_data.receiving_end_bus[b]]
+                                                    if aa == branch or aa == branch1:
                                                         row = b
+                                                        if len(shortest_path1) > len(shortest_path2):
+                                                            self._bus[voltage_new_node[node]][bus] = self._bus[voltage_old_node[node]][self._nearby_buses[a]] + self._branch[delta_v_phase[node]][row]
+                                                        else:
+                                                            self._bus[voltage_new_node[node]][bus] = self._bus[voltage_old_node[node]][self._nearby_buses[a]] - self._branch[delta_v_phase[node]][row]
                                                         break
-                                                self._bus[voltage_new_node[ii]][node] = self._bus[voltage_new_node[ii]][self._nearby_buses[a]] - (self._branch[current_phase[ii]][row]*self._branch["impedance"][row])
-                                                break                                
-                            zero_avail = self._bus[voltage_new_node[ii]].count(0)
+                                                break
+                        zero_avail = {}
+                        zero_avail = self._bus["voltage_new_node_1"] + self._bus["voltage_new_node_2"] + self._bus["voltage_new_node_3"]
+                        zero_avail_num = zero_avail.count(0)
+                        LOGGER.info("the number of 0 voltages are {}".format(zero_avail_num))
+                         
                     for w in range (self._num_buses): # calculate the error only for node 1
                         power_flow_error_node[w] = abs(self._bus["voltage_old_node_1"][w]-self._bus["voltage_new_node_1"][w])
                         power_flow_error_node=max(power_flow_error_node[w])
@@ -490,7 +520,7 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
                         self._bus[voltage_old_node[p]]=self._bus[voltage_new_node[p]]
                         self._bus[voltage_new_node[p]]=[0 for i in range(self._num_buses)]
                         self._bus[current_node[p]] = [0 for i in range(self._num_buses)]
-                    #    self._bus[voltage_new_node[p]][self._root_bus_index] = self._root_bus_voltage
+                        self._bus[voltage_new_node[p]][self._root_bus_index] = self._root_bus_voltage
                         self._branch[current_phase[p]] = [0 for i in range(self._num_branches)]
                         self._branch[delta_v_phase[p]] = [0 for i in range(self._num_branches)]
 
@@ -502,8 +532,9 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
                         bus_name=self._nis_bus_data.bus_name[bus]
                         for node in range (0,3):
                             row = bus*3 + node
-                            self._voltage_forecast[row]["Forecast"]["Series"]["Magnitude"]["Values"][horizon] = self._bus[voltage_new_node[node-1]][bus]
-                            self._voltage_forecast[row]["Forecast"]["Series"]["Angle"]["Values"][horizon] = 0    # Later add angle here
+                            [absolute,angle] = cmath.polar(self._bus[voltage_new_node[node-1]][bus])
+                            self._voltage_forecast[row]["Forecast"]["Series"]["Magnitude"]["Values"][horizon] = absolute
+                            self._voltage_forecast[row]["Forecast"]["Series"]["Angle"]["Values"][horizon] = angle*(360/(2*3.1415))    # radian to degree
                             self._voltage_forecast[row]["Forecast"]["Bus"] = bus_name
                             self._voltage_forecast[row]["Forecast"]["Node"] = node
                     
