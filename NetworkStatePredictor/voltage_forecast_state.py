@@ -30,6 +30,7 @@ class ForecastStateMessageVoltage(AbstractResultMessage):
     FORECAST_SERIES_ATTRIBUTE = "Forecast"
     FORECAST_SERIES_NAMES = ["Magnitude","Angle"]
     FORECAST_SERIES_UNITS= ["kV","deg"]
+    ACCEPTABLE_NODES=[1,2,3,"neutral"]
 
     Bus = "Bus"
     Node = "Node"
@@ -81,7 +82,7 @@ class ForecastStateMessageVoltage(AbstractResultMessage):
         if self._check_forecast(forecast):
             self.__forecast=forecast
             return
-        raise MessageValueError("'{:s}' is an invalid value for BusName".format(forecast))
+        raise MessageValueError("{} is an invalid value for forecast".format(forecast))
 
     @classmethod
     def _check_forecast(cls, forecast: Union[TimeSeriesBlock, Dict[str, Any]]) -> bool:
@@ -92,12 +93,10 @@ class ForecastStateMessageVoltage(AbstractResultMessage):
 
     @classmethod
     def _check_voltage_forecast_block(cls, voltage_block: TimeSeriesBlock) -> bool:
-        for voltage_series_name in cls.FORECAST_SERIES_NAMES:
-            if voltage_series_name not in voltage_block.series:
+        for voltage_series_name, unit in zip(cls.FORECAST_SERIES_NAMES, cls.FORECAST_SERIES_UNITS):
+            if voltage_series_name not in voltage_block.series or voltage_block.series[voltage_series_name].unit_of_measure != unit:
                 return False
-            current_series = voltage_block.series[voltage_series_name]
-            if current_series.unit_of_measure != cls.FORECAST_SERIES_UNITS:
-                return False
+        return True
 
     ######################
     @property
@@ -109,28 +108,34 @@ class ForecastStateMessageVoltage(AbstractResultMessage):
         if self._check_bus(bus):
             self.__bus=bus
         else:
-            raise MessageValueError("Invalid value, {}, for attribute: bus_type".format(bus))
+            raise MessageValueError("Invalid value, {}, for attribute: bus_name".format(bus))
 
     @classmethod
     def _check_bus(cls, bus: List[str]) -> bool:
-        if not isinstance(bus, str):
+        if type(bus)==str:
+            return True
+        else:
             return False
+
 
     ######################
     @property
-    def node(self) -> List[int]:
+    def node(self) -> List[int,str]:
         return self.__node
 
     @node.setter
-    def node(self, node: List[int]):
+    def node(self, node: List[int,str]):
         if self._check_node(node):
             self.__node=node
         else:
-            raise MessageValueError("Invalid value, {}, for attribute: bus_voltage_base".format(node))
+            raise MessageValueError("Invalid value, {}, for attribute: node".format(node))
 
     @classmethod
-    def _check_node(cls, node: List[int]) -> bool:
-        if not node==1 and not node==2 and not node==3: # three phase system posses three nodes!
+    def _check_node(cls, node: List[int,str]) -> bool:
+        LOGGER.info("node is {}".format(node))
+        if node in cls.ACCEPTABLE_NODES:
+            return True
+        else:
             return False
 
 ForecastStateMessageVoltage.register_to_factory()
