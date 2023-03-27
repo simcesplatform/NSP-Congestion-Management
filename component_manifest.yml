@@ -8,6 +8,9 @@ Attributes:
     PowerFlowPercision:
         Environment: POWER_FLOW_PERCISION
         Optional: true
+    MaxIteration:
+        Environment: MAX_ITERATION
+        Optional: true
     ApparentPowerBase:
         Environment: APPARENT_POWER_BASE
         Optional: true

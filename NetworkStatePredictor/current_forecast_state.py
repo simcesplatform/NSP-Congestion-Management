@@ -29,7 +29,8 @@ class ForecastStateMessageCurrent(AbstractResultMessage):
 
     FORECAST_SERIES_ATTRIBUTE = "Forecast"
     FORECAST_SERIES_NAMES = ["MagnitudeSendingEnd","MagnitudeReceivingEnd","AngleSendingEnd","AngleReceivingEnd"]
-    FORECAST_SERIES_UNITS= ["A","A","deg","deg"]
+    FORECAST_SERIES_UNITS = ["A","A","deg","deg"]
+    ACCEPTABLE_PHASES = [1,2,3,"neutral"]
 
     Device_Id = "DeviceId"
     Phase = "Phase"
@@ -81,7 +82,7 @@ class ForecastStateMessageCurrent(AbstractResultMessage):
         if self._check_forecast(forecast):
             self.__forecast=forecast
             return
-        raise MessageValueError("'{:s}' is an invalid value for BusName".format(forecast))
+        raise MessageValueError("{} is an invalid value for forecast".format(forecast))
 
     @classmethod
     def _check_forecast(cls, forecast: Union[TimeSeriesBlock, Dict[str, Any]]) -> bool:
@@ -92,12 +93,10 @@ class ForecastStateMessageCurrent(AbstractResultMessage):
 
     @classmethod
     def _check_current_forecast_block(cls, current_block: TimeSeriesBlock) -> bool:
-        for current_series_name in cls.FORECAST_SERIES_NAMES:
-            if current_series_name not in current_block.series:
+        for voltage_series_name, unit in zip(cls.FORECAST_SERIES_NAMES, cls.FORECAST_SERIES_UNITS):
+            if voltage_series_name not in current_block.series or current_block.series[voltage_series_name].unit_of_measure != unit:
                 return False
-            current_series = current_block.series[current_series_name]
-            if current_series.unit_of_measure != cls.FORECAST_SERIES_UNITS:
-                return False
+        return True
 
     ######################
     @property
@@ -109,11 +108,13 @@ class ForecastStateMessageCurrent(AbstractResultMessage):
         if self._check_deviceid(deviceid):
             self.__deviceid=deviceid
         else:
-            raise MessageValueError("Invalid value, {}, for attribute: bus_type".format(deviceid))
+            raise MessageValueError("Invalid value, {}, for attribute: deviceid".format(deviceid))
 
     @classmethod
     def _check_deviceid(cls, deviceid: List[str]) -> bool:
-        if not isinstance(deviceid, str):
+        if type(deviceid)== str:
+            return True
+        else:
             return False
 
     ######################
@@ -130,7 +131,9 @@ class ForecastStateMessageCurrent(AbstractResultMessage):
 
     @classmethod
     def _check_phase(cls, phase: List[int]) -> bool:
-        if not phase==1 and not phase==2 and not phase==3: # three phase system.
+        if phase in cls.ACCEPTABLE_PHASES:
+            return True
+        else:
             return False
 
 ForecastStateMessageCurrent.register_to_factory()
