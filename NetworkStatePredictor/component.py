@@ -36,7 +36,8 @@ LOGGER = FullLogger(__name__)
 BUS_DATA_TOPIC = "Init.NIS.NetworkBusInfo"
 CUSTOMER_DATA_TOPIC = "Init.CIS.CustomerInfo"
 COMPONENT_DATA_TOPIC = "Init.NIS.NetworkComponentInfo"
-RESOURCE_STATE_TOPIC = "ResourceState.#" # wild card is used to listen to all sub topics of resource state
+RESOURCE_STATE_TOPIC1 = "ResourceState.Load.#" # wild card could be used to listen to all sub topics of resource state. i.e.:ResourceState.#
+RESOURCE_STATE_TOPIC2 = "ResourceState.Generator.#" 
 RESOURCE_FORECAST_TOPIC = "ResourceForecastState."
 
 # Initialization data for power flow
@@ -56,7 +57,7 @@ RESOURCE_CATEGORIES = "RESOURCE_CATEGORIES"
 GRID_ID = "GRID_ID" # name of the grid 
 
 # time interval in seconds on how often to check whether the component is still running
-TIMEOUT = 2.0
+TIMEOUT = 1.0
 
 # ready made lists for further use in the code
 voltage_new_node = ["voltage_new_node_1","voltage_new_node_2","voltage_new_node_3","voltage_new_node_neutral"]
@@ -129,7 +130,8 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
 			BUS_DATA_TOPIC, 
 			CUSTOMER_DATA_TOPIC,
 			COMPONENT_DATA_TOPIC,
-            RESOURCE_STATE_TOPIC
+            RESOURCE_STATE_TOPIC1,
+            RESOURCE_STATE_TOPIC2
 		]
         for i in range (0,len(self._resource_categories)): # https://simcesplatform.github.io/energy_topic-resourceforecaststate/
             locals()["FORECAST_TOPIC_"+str(i)] = RESOURCE_FORECAST_TOPIC+self._resource_categories[i]+".#" # wild card is used to listen to all resource Ids
