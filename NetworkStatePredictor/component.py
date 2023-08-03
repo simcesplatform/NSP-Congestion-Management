@@ -69,7 +69,7 @@ delta_v_phase = ["delta_v_phase_1","delta_v_phase_2","delta_v_phase_3","delta_v_
 current_phase = ["current_phase_1","current_phase_2","current_phase_3","current_phase_neutral"]
 
 
-class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityArrayBlock,TimeSeriesBlock,ValueArrayBlock,AbstractMessage): # the NetworkStatePredictor class inherits from AbstractSimulationComponent class
+class NetworkStatePredictor(AbstractSimulationComponent): # the NetworkStatePredictor class inherits from AbstractSimulationComponent class
     """
     The NetworkStatePredictor (NSP) component is initialized in the beginning of the simulation by the simulation manager.
     NSP listens to NIS, CIS, ResourceForecaster and Resource. After that, the NSP runs a predictive power flow.
