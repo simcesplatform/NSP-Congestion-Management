@@ -624,12 +624,10 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
                     await self._send_message(current_message, current_topic)
             LOGGER.info("all forecasts were successfully sent")
             self._calculation_completed = True
-            await self._epoch_finished()
-        #    return True
+            return True  # return True to indicate that the component is finished with the current epoch
         else:
             LOGGER.info("input data arenot complete")
             return False # return False to indicate that the component is not finished with the current epoch
-        #return True # return True to indicate that the component is finished with the current epoch
 
     async def general_message_handler(self, message_object: Union[BaseMessage,QuantityBlock, Any],
                                       message_routing_key: str) -> None:
@@ -719,7 +717,7 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
             self._resource_state_msg_counter == self._num_resources:
                 self._input_data_ready = True
                 LOGGER.info("all required data were received, now ready for the actual functionality")
-                await self.process_epoch()
+                await self.start_epoch()
     
     def _resource_forecast_message_handler(self,forecasted_data:Union [ResourceForecastPowerMessage,TimeSeriesBlock]) -> None:
         if self._resource_forecast_msg_counter == [] or self._resource_forecast_msg_counter == 0 :
@@ -746,9 +744,6 @@ class NetworkStatePredictor(AbstractSimulationComponent,QuantityBlock,QuantityAr
         await self._rabbitmq_client.send_message(
         topic_name=Topic,
         message_bytes=MessageContent.bytes())
-
-    async def _epoch_finished(self):
-        await self.process_epoch()
 
     def _shortest_path(self,start, goal): # https://www.geeksforgeeks.org/building-an-undirected-graph-and-finding-shortest-path-using-dictionaries-in-python/
         explored = []
