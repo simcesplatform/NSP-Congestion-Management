@@ -190,6 +190,9 @@ class NetworkStatePredictor(AbstractSimulationComponent): # the NetworkStatePred
             self._forecast_time_index = [] 
             self._voltage_forecast = []  
             self._current_forecast = []
+            self._voltage_forecast_template = []
+            self._current_forecast_template = []
+
             self._epoch_internal = self._latest_epoch_message.epoch_number
 
             self._resources["CustomerId"] = [0 for i in range(self._num_resources + 1)] # clearing the resource messages
@@ -302,6 +305,7 @@ class NetworkStatePredictor(AbstractSimulationComponent): # the NetworkStatePred
                     a["Forecast"]["Series"]["AngleReceivingEnd"]["Values"] = [0 for i in range(self._forecast_horizon)]
                     self._current_forecast_template.append(a)
 
+            
             self._voltage_forecast = self._voltage_forecast_template
             self._current_forecast = self._current_forecast_template
 
@@ -509,7 +513,7 @@ class NetworkStatePredictor(AbstractSimulationComponent): # the NetworkStatePred
                         zero_avail_num = zero_avail.count(0)
                         LOGGER.info("zero available is {}".format(zero_avail_num))
 
-                    LOGGER.info("the voltage at phase 1 is {}".format(self._bus["voltage_new_node_1"]))
+                    #LOGGER.info("the voltage at phase 1 is {}".format(self._bus["voltage_new_node_1"]))
 
                     error = [0 for i in range(self._num_buses)]
                     for w in range (self._num_buses): # calculate the error only for node 1    
@@ -590,7 +594,6 @@ class NetworkStatePredictor(AbstractSimulationComponent): # the NetworkStatePred
             #LOGGER.info("the final voltage forecast is {}".format(self._voltage_forecast))
             # when power flow is done for all time steps
             LOGGER.info("29. All Power flows are done")
-
             q = 0
             for p in range (0,len(self._voltage_forecast)):
                 if type(self._voltage_forecast[p]["Node"]) == int: # we donot need to send the voltage values for the neutral nodes
