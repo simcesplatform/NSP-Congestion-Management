@@ -272,35 +272,35 @@ class NetworkStatePredictor(AbstractSimulationComponent): # the NetworkStatePred
                     if self._nis_bus_data.bus_name[i] != self._root_bus_name:
                         self._paths[i]=self._shortest_path(self._root_bus_name,self._nis_bus_data.bus_name[i])  # in self._paths[key], the key is the index of the buses in self._nis_bus_data.bus_name 
             
-                # preparing voltage and current forecast messages templates   
-                LOGGER.info("17.preparing voltage and current forecast messages templates")
-                for bus in range (self._num_buses): # making a list of dictionaries
-                    for node in range(4):  # Each bus has three nodes + neutral node
-                        a = {}
-                        a = {'Forecast': {'TimeIndex': ["0"],\
-                        'Series': {'Magnitude': {'UnitOfMeasure': 'kV', 'Values': [0]},\
-                        'Angle': {'UnitOfMeasure': 'deg', 'Values': [0]}}},\
-                        'Bus': 'load', 'Node': 1}
-                        a["Forecast"]["TimeIndex"] = self._forecast_time_index
-                        a["Forecast"]["Series"]["Magnitude"]["Values"] = [0 for i in range(self._forecast_horizon)]
-                        a["Forecast"]["Series"]["Angle"]["Values"] = [0 for i in range(self._forecast_horizon)]
-                        self._voltage_forecast_template.append(a) 
-            
-                for branch in range (self._num_branches): # making a list of dictionaries
-                    for phase in range (4): # each branch has three phases + neutral phase
-                        a = {}
-                        a = {"Forecast" : {"TimeIndex" :["0"],\
-                        "Series" :{"MagnitudeSendingEnd" :{"UnitOfMeasure" : "A","Values" :[0]},\
-                        "MagnitudeReceivingEnd" :{"UnitOfMeasure" : "A","Values" :[0]},\
-                        "AngleSendingEnd" :{"UnitOfMeasure" : "deg","Values" :[0]},\
-                        "AngleReceivingEnd" :{"UnitOfMeasure" : "deg","Values" :[0]}}},\
-                        "DeviceId" : "XYZ","Phase" : 1}
-                        a["Forecast"]["TimeIndex"] = self._forecast_time_index
-                        a["Forecast"]["Series"]["MagnitudeSendingEnd"]["Values"] = [0 for i in range(self._forecast_horizon)]
-                        a["Forecast"]["Series"]["MagnitudeReceivingEnd"]["Values"] = [0 for i in range(self._forecast_horizon)]
-                        a["Forecast"]["Series"]["AngleSendingEnd"]["Values"] = [0 for i in range(self._forecast_horizon)]
-                        a["Forecast"]["Series"]["AngleReceivingEnd"]["Values"] = [0 for i in range(self._forecast_horizon)]
-                        self._current_forecast_template.append(a)
+            # preparing voltage and current forecast messages templates   
+            LOGGER.info("17.preparing voltage and current forecast messages templates")
+            for bus in range (self._num_buses): # making a list of dictionaries
+                for node in range(4):  # Each bus has three nodes + neutral node
+                    a = {}
+                    a = {'Forecast': {'TimeIndex': ["0"],\
+                    'Series': {'Magnitude': {'UnitOfMeasure': 'kV', 'Values': [0]},\
+                    'Angle': {'UnitOfMeasure': 'deg', 'Values': [0]}}},\
+                    'Bus': 'load', 'Node': 1}
+                    a["Forecast"]["TimeIndex"] = self._forecast_time_index
+                    a["Forecast"]["Series"]["Magnitude"]["Values"] = [0 for i in range(self._forecast_horizon)]
+                    a["Forecast"]["Series"]["Angle"]["Values"] = [0 for i in range(self._forecast_horizon)]
+                    self._voltage_forecast_template.append(a) 
+        
+            for branch in range (self._num_branches): # making a list of dictionaries
+                for phase in range (4): # each branch has three phases + neutral phase
+                    a = {}
+                    a = {"Forecast" : {"TimeIndex" :["0"],\
+                    "Series" :{"MagnitudeSendingEnd" :{"UnitOfMeasure" : "A","Values" :[0]},\
+                    "MagnitudeReceivingEnd" :{"UnitOfMeasure" : "A","Values" :[0]},\
+                    "AngleSendingEnd" :{"UnitOfMeasure" : "deg","Values" :[0]},\
+                    "AngleReceivingEnd" :{"UnitOfMeasure" : "deg","Values" :[0]}}},\
+                    "DeviceId" : "XYZ","Phase" : 1}
+                    a["Forecast"]["TimeIndex"] = self._forecast_time_index
+                    a["Forecast"]["Series"]["MagnitudeSendingEnd"]["Values"] = [0 for i in range(self._forecast_horizon)]
+                    a["Forecast"]["Series"]["MagnitudeReceivingEnd"]["Values"] = [0 for i in range(self._forecast_horizon)]
+                    a["Forecast"]["Series"]["AngleSendingEnd"]["Values"] = [0 for i in range(self._forecast_horizon)]
+                    a["Forecast"]["Series"]["AngleReceivingEnd"]["Values"] = [0 for i in range(self._forecast_horizon)]
+                    self._current_forecast_template.append(a)
 
             self._voltage_forecast = self._voltage_forecast_template
             self._current_forecast = self._current_forecast_template
@@ -463,7 +463,7 @@ class NetworkStatePredictor(AbstractSimulationComponent): # the NetworkStatePred
                                     for a in range (length):
                                         index = self._nis_bus_data.bus_name.index(nearby_buses[a])
                     #                    LOGGER.info("Bus Name index is {}".format(index))
-                                        if self._bus[voltage_new_node[node]][index] > 0:
+                                        if abs(self._bus[voltage_new_node[node]][index]) > 0.1:
                     #                        LOGGER.info("the existing voltage is {}".format(self._bus[voltage_new_node[node]][index]))
                                             to_bus = nearby_buses[a]
                                             from_bus = bus_name
@@ -513,7 +513,9 @@ class NetworkStatePredictor(AbstractSimulationComponent): # the NetworkStatePred
 
                     error = [0 for i in range(self._num_buses)]
                     for w in range (self._num_buses): # calculate the error only for node 1    
-                        error[w] = self._bus["voltage_old_node_1"][w]-self._bus["voltage_new_node_1"][w]
+                        error[w] = abs(self._bus["voltage_old_node_1"][w]-self._bus["voltage_new_node_1"][w])
+                    
+                    LOGGER.info("error was calculated")
                     power_flow_error_node=max(error)
                     LOGGER.info("the maximum error is {}".format(abs(power_flow_error_node)))
 
