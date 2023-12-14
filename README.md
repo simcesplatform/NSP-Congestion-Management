@@ -35,9 +35,9 @@ If at any stage of the execution Status (Error) message is received component wi
 
 * Language and platform
 
-| Programming language | Python 3.11.4          |
-| -------------------- | ----------------------- |
-| Operating system     | Windows 10 version 22H2 |
+| Programming language | Python 3.11.4                                             |
+| -------------------- | ---------------------------------------------------------- |
+| Operating system     | Docker version 20.10.21 running on windows 10 version 22H2 |
 
 **External packages**
 
