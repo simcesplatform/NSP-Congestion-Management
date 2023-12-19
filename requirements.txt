@@ -1,4 +1,4 @@
 
 aio_pika==6.6.1
 aiounittest==1.4.0
-numpy==1.20.3
+numpy==1.22.0
